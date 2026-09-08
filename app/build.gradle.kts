@@ -2,6 +2,11 @@ plugins {
     alias(libs.plugins.android.application)
     // alias(libs.plugins.kotlin.android)
     // id("org.jetbrains.kotlin.kapt") // this is being applied directly instead of as an alias
+    //alias(libs.plugins.kotlin.android)
+    //alias(libs.plugins.ksp)
+    // id("com.android.application")
+    //alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -49,6 +54,8 @@ dependencies {
     // Glide
     implementation(libs.glide)
     // kapt(libs.glide.compiler)
+    // KSP annotation processor replacement for Glide
+    ksp(libs.glide)
 
     // Gson
     implementation(libs.gson)
