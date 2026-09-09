@@ -44,7 +44,7 @@ class MainActivity : AppCompatActivity() {
 
         // Init Retrofit
         val retrofit = Retrofit.Builder()
-            .baseUrl("https://itunes.apple.com")
+            .baseUrl("https://itunes.apple.com/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
         api = retrofit.create(ITunesApi::class.java)
