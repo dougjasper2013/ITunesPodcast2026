@@ -47,8 +47,8 @@ lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel", versi
 
 # Media 3
 media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
-
 media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
+media3-exoplayer-hls = { module = "androidx.media3:media3-exoplayer-hls", version.ref = "media3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
