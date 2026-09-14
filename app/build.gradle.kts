@@ -66,7 +66,9 @@ dependencies {
     // Lifecycle ViewModel
     implementation(libs.lifecycle.viewmodel)
 
-
+    // Media 3
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.ui)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
