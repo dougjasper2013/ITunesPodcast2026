@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.trios2025dej.itunespodcast2026.R
 import com.trios2025dej.itunespodcast2026.data.ITunesApi
+import com.trios2025dej.itunespodcast2026.data.Podcast
 import com.trios2025dej.itunespodcast2026.data.PodcastRssParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,65 +21,68 @@ import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-class MainActivity : AppCompatActivity() {
+class MainActivity :
+    AppCompatActivity() {
 
-    private lateinit var editTextSearch: EditText
-    private lateinit var buttonSearch: Button
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var adapter: PodcastAdapter
-    private lateinit var api: ITunesApi
+    private lateinit var editTextSearch:
+            EditText
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    private lateinit var buttonSearch:
+            Button
+
+    private lateinit var buttonSubscriptions:
+            Button
+
+    private lateinit var recyclerView:
+            RecyclerView
+
+    private lateinit var adapter:
+            PodcastAdapter
+
+    private lateinit var api:
+            ITunesApi
+
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
 
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
 
-        setContentView(R.layout.activity_main)
+        setContentView(
+            R.layout.activity_main
+        )
 
         editTextSearch =
-            findViewById(R.id.editTextSearch)
+            findViewById(
+                R.id.editTextSearch
+            )
 
         buttonSearch =
-            findViewById(R.id.buttonSearch)
+            findViewById(
+                R.id.buttonSearch
+            )
+
+        buttonSubscriptions =
+            findViewById(
+                R.id.buttonSubscriptions
+            )
 
         recyclerView =
-            findViewById(R.id.recyclerView)
-
-        adapter = PodcastAdapter(emptyList()) { podcast ->
-
-            val intent = Intent(
-                this,
-                PodcastDetailActivity::class.java
+            findViewById(
+                R.id.recyclerView
             )
 
-            intent.putExtra(
-                PodcastDetailActivity.EXTRA_TRACK_ID,
-                podcast.trackId
-            )
+        adapter =
+            PodcastAdapter(
+                emptyList()
+            ) { podcast ->
 
-            intent.putExtra(
-                PodcastDetailActivity.EXTRA_TITLE,
-                podcast.collectionName
-            )
-
-            intent.putExtra(
-                PodcastDetailActivity.EXTRA_ARTIST,
-                podcast.artistName
-            )
-
-            intent.putExtra(
-                PodcastDetailActivity.EXTRA_ARTWORK,
-                podcast.artworkUrl100
-            )
-
-            intent.putExtra(
-                PodcastDetailActivity.EXTRA_FEED_URL,
-                podcast.feedUrl
-            )
-
-            startActivity(intent)
-        }
+                openPodcast(
+                    podcast
+                )
+            }
 
         recyclerView.layoutManager =
             LinearLayoutManager(this)
@@ -86,16 +90,20 @@ class MainActivity : AppCompatActivity() {
         recyclerView.adapter =
             adapter
 
-        val retrofit = Retrofit.Builder()
-            .baseUrl("https://itunes.apple.com/")
-            .addConverterFactory(
-                GsonConverterFactory.create()
-            )
-            .build()
+        val retrofit =
+            Retrofit.Builder()
+                .baseUrl(
+                    "https://itunes.apple.com/"
+                )
+                .addConverterFactory(
+                    GsonConverterFactory.create()
+                )
+                .build()
 
-        api = retrofit.create(
-            ITunesApi::class.java
-        )
+        api =
+            retrofit.create(
+                ITunesApi::class.java
+            )
 
         buttonSearch.setOnClickListener {
 
@@ -105,8 +113,19 @@ class MainActivity : AppCompatActivity() {
                     .trim()
 
             if (query.isNotEmpty()) {
+
                 searchPodcasts(query)
             }
+        }
+
+        buttonSubscriptions.setOnClickListener {
+
+            startActivity(
+                Intent(
+                    this,
+                    SubscriptionsActivity::class.java
+                )
+            )
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(
@@ -129,7 +148,47 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun searchPodcasts(query: String) {
+    private fun openPodcast(
+        podcast: Podcast
+    ) {
+
+        val intent =
+            Intent(
+                this,
+                PodcastDetailActivity::class.java
+            )
+
+        intent.putExtra(
+            PodcastDetailActivity.EXTRA_TRACK_ID,
+            podcast.trackId
+        )
+
+        intent.putExtra(
+            PodcastDetailActivity.EXTRA_TITLE,
+            podcast.collectionName
+        )
+
+        intent.putExtra(
+            PodcastDetailActivity.EXTRA_ARTIST,
+            podcast.artistName
+        )
+
+        intent.putExtra(
+            PodcastDetailActivity.EXTRA_ARTWORK,
+            podcast.artworkUrl100
+        )
+
+        intent.putExtra(
+            PodcastDetailActivity.EXTRA_FEED_URL,
+            podcast.feedUrl
+        )
+
+        startActivity(intent)
+    }
+
+    private fun searchPodcasts(
+        query: String
+    ) {
 
         lifecycleScope.launch {
 
@@ -154,7 +213,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun classifyPodcastTypes(
-        podcasts: List<com.trios2025dej.itunespodcast2026.data.Podcast>
+        podcasts: List<Podcast>
     ) {
 
         podcasts.forEach { podcast ->
@@ -162,7 +221,9 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope.launch {
 
                 val type =
-                    withContext(Dispatchers.IO) {
+                    withContext(
+                        Dispatchers.IO
+                    ) {
 
                         try {
 
@@ -171,7 +232,9 @@ class MainActivity : AppCompatActivity() {
                                     podcast.feedUrl
                                 )
 
-                        } catch (e: Exception) {
+                        } catch (
+                            e: Exception
+                        ) {
 
                             "Unknown"
                         }
