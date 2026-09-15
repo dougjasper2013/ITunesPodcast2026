@@ -16,7 +16,6 @@ class EpisodeAdapter(
     fun updateList(
         newEpisodes: List<Episode>
     ) {
-
         episodes = newEpisodes
 
         notifyDataSetChanged()
@@ -27,12 +26,13 @@ class EpisodeAdapter(
         viewType: Int
     ): EpisodeViewHolder {
 
-        val view = LayoutInflater.from(parent.context)
-            .inflate(
-                R.layout.item_episode,
-                parent,
-                false
-            )
+        val view =
+            LayoutInflater.from(parent.context)
+                .inflate(
+                    R.layout.item_episode,
+                    parent,
+                    false
+                )
 
         return EpisodeViewHolder(
             view,
@@ -56,7 +56,8 @@ class EpisodeAdapter(
 
     class EpisodeViewHolder(
         itemView: View,
-        private val onEpisodeClick: (Episode) -> Unit
+        private val onEpisodeClick:
+            (Episode) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
 
         private val textTitle: TextView =
@@ -92,7 +93,9 @@ class EpisodeAdapter(
                 episode.pubDate
 
             itemView.setOnClickListener {
-                onEpisodeClick(episode)
+                onEpisodeClick(
+                    episode
+                )
             }
         }
     }

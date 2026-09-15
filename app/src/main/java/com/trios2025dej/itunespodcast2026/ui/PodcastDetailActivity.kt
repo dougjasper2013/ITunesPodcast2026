@@ -25,8 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class PodcastDetailActivity :
-    AppCompatActivity() {
+class PodcastDetailActivity : AppCompatActivity() {
 
     companion object {
 
@@ -46,58 +45,30 @@ class PodcastDetailActivity :
             "feed_url"
     }
 
-    private lateinit var imageArtwork:
-            ImageView
+    private lateinit var imageArtwork: ImageView
+    private lateinit var textTitle: TextView
+    private lateinit var textArtist: TextView
+    private lateinit var textDescription: TextView
+    private lateinit var buttonSubscribe: Button
+    private lateinit var playerView: PlayerView
+    private lateinit var recyclerViewEpisodes: RecyclerView
 
-    private lateinit var textTitle:
-            TextView
+    private lateinit var episodeAdapter: EpisodeAdapter
+    private lateinit var database: AppDatabase
 
-    private lateinit var textArtist:
-            TextView
+    private var player: ExoPlayer? = null
 
-    private lateinit var textDescription:
-            TextView
+    private var isSubscribed = false
 
-    private lateinit var buttonSubscribe:
-            Button
-
-    private lateinit var playerView:
-            PlayerView
-
-    private lateinit var recyclerViewEpisodes:
-            RecyclerView
-
-    private lateinit var episodeAdapter:
-            EpisodeAdapter
-
-    private lateinit var database:
-            AppDatabase
-
-    private var player:
-            ExoPlayer? = null
-
-    private var isSubscribed =
-        false
-
-    private var podcastTrackId:
-            Long = -1L
-
-    private var podcastTitle =
-        ""
-
-    private var podcastArtist =
-        ""
-
-    private var podcastArtwork =
-        ""
-
-    private var podcastFeedUrl =
-        ""
+    private var podcastTrackId: Long = -1L
+    private var podcastTitle = ""
+    private var podcastArtist = ""
+    private var podcastArtwork = ""
+    private var podcastFeedUrl = ""
 
     override fun onCreate(
         savedInstanceState: Bundle?
     ) {
-
         super.onCreate(savedInstanceState)
 
         setContentView(
@@ -183,7 +154,6 @@ class PodcastDetailActivity :
             AppDatabase.getDatabase(this)
 
         buttonSubscribe.setOnClickListener {
-
             toggleSubscription()
         }
 
@@ -192,6 +162,13 @@ class PodcastDetailActivity :
                 emptyList()
             ) { episode ->
 
+                // Update the description first.
+                textDescription.text =
+                    cleanDescription(
+                        episode.description
+                    )
+
+                // Then play the selected episode.
                 playEpisode(
                     episode
                 )
@@ -208,10 +185,13 @@ class PodcastDetailActivity :
         checkSubscriptionStatus()
 
         if (podcastFeedUrl.isNotBlank()) {
+
             loadFeed(
                 podcastFeedUrl
             )
+
         } else {
+
             textDescription.text =
                 "No podcast feed was supplied."
         }
@@ -251,53 +231,39 @@ class PodcastDetailActivity :
 
             withContext(Dispatchers.IO) {
 
+                val podcast =
+                    SubscribedPodcast(
+                        trackId =
+                            podcastTrackId,
+
+                        collectionName =
+                            podcastTitle,
+
+                        artistName =
+                            podcastArtist,
+
+                        artworkUrl100 =
+                            podcastArtwork,
+
+                        feedUrl =
+                            podcastFeedUrl
+                    )
+
                 if (!isSubscribed) {
-
-                    val podcast =
-                        SubscribedPodcast(
-                            trackId =
-                                podcastTrackId,
-
-                            collectionName =
-                                podcastTitle,
-
-                            artistName =
-                                podcastArtist,
-
-                            artworkUrl100 =
-                                podcastArtwork,
-
-                            feedUrl =
-                                podcastFeedUrl
-                        )
 
                     database
                         .subscriptionDao()
-                        .insert(podcast)
+                        .insert(
+                            podcast
+                        )
 
                 } else {
 
-                    val podcast =
-                        SubscribedPodcast(
-                            trackId =
-                                podcastTrackId,
-
-                            collectionName =
-                                podcastTitle,
-
-                            artistName =
-                                podcastArtist,
-
-                            artworkUrl100 =
-                                podcastArtwork,
-
-                            feedUrl =
-                                podcastFeedUrl
-                        )
-
                     database
                         .subscriptionDao()
-                        .delete(podcast)
+                        .delete(
+                            podcast
+                        )
                 }
             }
 
@@ -327,9 +293,7 @@ class PodcastDetailActivity :
             try {
 
                 val episodes =
-                    withContext(
-                        Dispatchers.IO
-                    ) {
+                    withContext(Dispatchers.IO) {
 
                         PodcastRssParser
                             .parseFeed(
@@ -343,14 +307,13 @@ class PodcastDetailActivity :
                         episodes
                     )
 
-                    val description =
-                        episodes
-                            .first()
-                            .description
-
+                    // Display the first episode's
+                    // description when the screen loads.
                     textDescription.text =
                         cleanDescription(
-                            description
+                            episodes
+                                .first()
+                                .description
                         )
 
                 } else {
@@ -402,10 +365,9 @@ class PodcastDetailActivity :
                 url.contains(".m3u8")
             ) {
 
-                mediaItemBuilder
-                    .setMimeType(
-                        MimeTypes.APPLICATION_M3U8
-                    )
+                mediaItemBuilder.setMimeType(
+                    MimeTypes.APPLICATION_M3U8
+                )
             }
 
             val mediaItem =
