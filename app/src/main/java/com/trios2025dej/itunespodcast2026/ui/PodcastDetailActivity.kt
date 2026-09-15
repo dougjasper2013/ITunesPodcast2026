@@ -3,6 +3,7 @@ package com.trios2025dej.itunespodcast2026.ui
 import android.os.Bundle
 import android.text.Html
 import android.view.View
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -16,13 +17,16 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.trios2025dej.itunespodcast2026.R
+import com.trios2025dej.itunespodcast2026.data.AppDatabase
 import com.trios2025dej.itunespodcast2026.data.Episode
 import com.trios2025dej.itunespodcast2026.data.PodcastRssParser
+import com.trios2025dej.itunespodcast2026.data.SubscribedPodcast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class PodcastDetailActivity : AppCompatActivity() {
+class PodcastDetailActivity :
+    AppCompatActivity() {
 
     companion object {
 
@@ -42,16 +46,53 @@ class PodcastDetailActivity : AppCompatActivity() {
             "feed_url"
     }
 
-    private lateinit var imageArtwork: ImageView
-    private lateinit var textTitle: TextView
-    private lateinit var textArtist: TextView
-    private lateinit var textDescription: TextView
-    private lateinit var playerView: PlayerView
-    private lateinit var recyclerViewEpisodes: RecyclerView
+    private lateinit var imageArtwork:
+            ImageView
 
-    private lateinit var episodeAdapter: EpisodeAdapter
+    private lateinit var textTitle:
+            TextView
 
-    private var player: ExoPlayer? = null
+    private lateinit var textArtist:
+            TextView
+
+    private lateinit var textDescription:
+            TextView
+
+    private lateinit var buttonSubscribe:
+            Button
+
+    private lateinit var playerView:
+            PlayerView
+
+    private lateinit var recyclerViewEpisodes:
+            RecyclerView
+
+    private lateinit var episodeAdapter:
+            EpisodeAdapter
+
+    private lateinit var database:
+            AppDatabase
+
+    private var player:
+            ExoPlayer? = null
+
+    private var isSubscribed =
+        false
+
+    private var podcastTrackId:
+            Long = -1L
+
+    private var podcastTitle =
+        ""
+
+    private var podcastArtist =
+        ""
+
+    private var podcastArtwork =
+        ""
+
+    private var podcastFeedUrl =
+        ""
 
     override fun onCreate(
         savedInstanceState: Bundle?
@@ -87,6 +128,11 @@ class PodcastDetailActivity : AppCompatActivity() {
                 R.id.textViewDescription
             )
 
+        buttonSubscribe =
+            findViewById(
+                R.id.buttonSubscribe
+            )
+
         playerView =
             findViewById(
                 R.id.playerView
@@ -97,31 +143,58 @@ class PodcastDetailActivity : AppCompatActivity() {
                 R.id.recyclerViewEpisodes
             )
 
-        textTitle.text =
+        podcastTrackId =
+            intent.getLongExtra(
+                EXTRA_TRACK_ID,
+                -1L
+            )
+
+        podcastTitle =
             intent.getStringExtra(
                 EXTRA_TITLE
-            ) ?: "Podcast"
+            ) ?: ""
 
-        textArtist.text =
+        podcastArtist =
             intent.getStringExtra(
                 EXTRA_ARTIST
             ) ?: ""
 
-        val artworkUrl =
+        podcastArtwork =
             intent.getStringExtra(
                 EXTRA_ARTWORK
-            )
+            ) ?: ""
+
+        podcastFeedUrl =
+            intent.getStringExtra(
+                EXTRA_FEED_URL
+            ) ?: ""
+
+        textTitle.text =
+            podcastTitle
+
+        textArtist.text =
+            podcastArtist
 
         Glide.with(this)
-            .load(artworkUrl)
+            .load(podcastArtwork)
             .into(imageArtwork)
+
+        database =
+            AppDatabase.getDatabase(this)
+
+        buttonSubscribe.setOnClickListener {
+
+            toggleSubscription()
+        }
 
         episodeAdapter =
             EpisodeAdapter(
                 emptyList()
             ) { episode ->
 
-                playEpisode(episode)
+                playEpisode(
+                    episode
+                )
             }
 
         recyclerViewEpisodes.layoutManager =
@@ -132,16 +205,106 @@ class PodcastDetailActivity : AppCompatActivity() {
 
         initializePlayer()
 
-        val feedUrl =
-            intent.getStringExtra(
-                EXTRA_FEED_URL
-            )
+        checkSubscriptionStatus()
 
-        if (!feedUrl.isNullOrBlank()) {
-            loadFeed(feedUrl)
+        if (podcastFeedUrl.isNotBlank()) {
+            loadFeed(
+                podcastFeedUrl
+            )
         } else {
             textDescription.text =
                 "No podcast feed was supplied."
+        }
+    }
+
+    private fun checkSubscriptionStatus() {
+
+        lifecycleScope.launch {
+
+            isSubscribed =
+                withContext(Dispatchers.IO) {
+
+                    database
+                        .subscriptionDao()
+                        .isSubscribed(
+                            podcastTrackId
+                        )
+                }
+
+            updateSubscriptionButton()
+        }
+    }
+
+    private fun updateSubscriptionButton() {
+
+        buttonSubscribe.text =
+            if (isSubscribed) {
+                "UNSUBSCRIBE"
+            } else {
+                "SUBSCRIBE"
+            }
+    }
+
+    private fun toggleSubscription() {
+
+        lifecycleScope.launch {
+
+            withContext(Dispatchers.IO) {
+
+                if (!isSubscribed) {
+
+                    val podcast =
+                        SubscribedPodcast(
+                            trackId =
+                                podcastTrackId,
+
+                            collectionName =
+                                podcastTitle,
+
+                            artistName =
+                                podcastArtist,
+
+                            artworkUrl100 =
+                                podcastArtwork,
+
+                            feedUrl =
+                                podcastFeedUrl
+                        )
+
+                    database
+                        .subscriptionDao()
+                        .insert(podcast)
+
+                } else {
+
+                    val podcast =
+                        SubscribedPodcast(
+                            trackId =
+                                podcastTrackId,
+
+                            collectionName =
+                                podcastTitle,
+
+                            artistName =
+                                podcastArtist,
+
+                            artworkUrl100 =
+                                podcastArtwork,
+
+                            feedUrl =
+                                podcastFeedUrl
+                        )
+
+                    database
+                        .subscriptionDao()
+                        .delete(podcast)
+                }
+            }
+
+            isSubscribed =
+                !isSubscribed
+
+            updateSubscriptionButton()
         }
     }
 
@@ -164,10 +327,14 @@ class PodcastDetailActivity : AppCompatActivity() {
             try {
 
                 val episodes =
-                    withContext(Dispatchers.IO) {
+                    withContext(
+                        Dispatchers.IO
+                    ) {
 
                         PodcastRssParser
-                            .parseFeed(feedUrl)
+                            .parseFeed(
+                                feedUrl
+                            )
                     }
 
                 if (episodes.isNotEmpty()) {
@@ -176,12 +343,14 @@ class PodcastDetailActivity : AppCompatActivity() {
                         episodes
                     )
 
-                    val firstDescription =
-                        episodes.first().description
+                    val description =
+                        episodes
+                            .first()
+                            .description
 
                     textDescription.text =
                         cleanDescription(
-                            firstDescription
+                            description
                         )
 
                 } else {
@@ -211,15 +380,20 @@ class PodcastDetailActivity : AppCompatActivity() {
 
             val mediaItemBuilder =
                 MediaItem.Builder()
-                    .setUri(episode.mediaUrl)
+                    .setUri(
+                        episode.mediaUrl
+                    )
                     .setMediaMetadata(
                         MediaMetadata.Builder()
-                            .setTitle(episode.title)
+                            .setTitle(
+                                episode.title
+                            )
                             .build()
                     )
 
             val url =
-                episode.mediaUrl.lowercase()
+                episode.mediaUrl
+                    .lowercase()
 
             if (
                 episode.mediaType
@@ -228,9 +402,10 @@ class PodcastDetailActivity : AppCompatActivity() {
                 url.contains(".m3u8")
             ) {
 
-                mediaItemBuilder.setMimeType(
-                    MimeTypes.APPLICATION_M3U8
-                )
+                mediaItemBuilder
+                    .setMimeType(
+                        MimeTypes.APPLICATION_M3U8
+                    )
             }
 
             val mediaItem =
@@ -269,7 +444,8 @@ class PodcastDetailActivity : AppCompatActivity() {
             .trim()
     }
 
-    override fun onSupportNavigateUp(): Boolean {
+    override fun onSupportNavigateUp():
+            Boolean {
 
         finish()
 
