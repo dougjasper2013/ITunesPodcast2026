@@ -1,11 +1,19 @@
 package com.trios2025dej.itunespodcast2026.ui
 
+import android.Manifest
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
@@ -13,8 +21,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.trios2025dej.itunespodcast2026.R
 import com.trios2025dej.itunespodcast2026.data.ITunesApi
+import com.trios2025dej.itunespodcast2026.data.NotificationHelper
 import com.trios2025dej.itunespodcast2026.data.Podcast
 import com.trios2025dej.itunespodcast2026.data.PodcastRssParser
+import com.trios2025dej.itunespodcast2026.data.PodcastUpdateScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -23,6 +33,13 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity :
     AppCompatActivity() {
+
+    companion object {
+
+        @Volatile
+        var isInForeground =
+            false
+    }
 
     private lateinit var editTextSearch:
             EditText
@@ -41,6 +58,40 @@ class MainActivity :
 
     private lateinit var api:
             ITunesApi
+
+    private val episodeReceiver =
+        object : BroadcastReceiver() {
+
+            override fun onReceive(
+                context: Context?,
+                intent: Intent?
+            ) {
+
+                if (
+                    intent?.action ==
+                    PodcastUpdateWorker.ACTION_NEW_EPISODE
+                ) {
+
+                    val podcastTitle =
+                        intent.getStringExtra(
+                            PodcastUpdateWorker
+                                .EXTRA_PODCAST_TITLE
+                        ) ?: "Podcast"
+
+                    val episodeTitle =
+                        intent.getStringExtra(
+                            PodcastUpdateWorker
+                                .EXTRA_EPISODE_TITLE
+                        ) ?: "New episode"
+
+                    Toast.makeText(
+                        this@MainActivity,
+                        "New episode from $podcastTitle:\n$episodeTitle",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
 
     override fun onCreate(
         savedInstanceState: Bundle?
@@ -112,9 +163,13 @@ class MainActivity :
                     .toString()
                     .trim()
 
-            if (query.isNotEmpty()) {
+            if (
+                query.isNotEmpty()
+            ) {
 
-                searchPodcasts(query)
+                searchPodcasts(
+                    query
+                )
             }
         }
 
@@ -127,6 +182,18 @@ class MainActivity :
                 )
             )
         }
+
+        NotificationHelper
+            .createNotificationChannel(
+                this
+            )
+
+        requestNotificationPermission()
+
+        PodcastUpdateScheduler
+            .schedule(
+                this
+            )
 
         ViewCompat.setOnApplyWindowInsetsListener(
             findViewById(R.id.main)
@@ -145,6 +212,68 @@ class MainActivity :
             )
 
             insets
+        }
+    }
+
+    override fun onStart() {
+
+        super.onStart()
+
+        isInForeground =
+            true
+
+        val filter =
+            IntentFilter(
+                PodcastUpdateWorker.ACTION_NEW_EPISODE
+            )
+
+        ContextCompat.registerReceiver(
+            this,
+            episodeReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+    }
+
+    override fun onStop() {
+
+        isInForeground =
+            false
+
+        try {
+
+            unregisterReceiver(
+                episodeReceiver
+            )
+
+        } catch (
+            e: IllegalArgumentException
+        ) {
+            // Receiver was already unregistered.
+        }
+
+        super.onStop()
+    }
+
+    private fun requestNotificationPermission() {
+
+        if (
+            Build.VERSION.SDK_INT >= 33
+        ) {
+
+            if (
+                checkSelfPermission(
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+
+                requestPermissions(
+                    arrayOf(
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ),
+                    1001
+                )
+            }
         }
     }
 
@@ -183,7 +312,9 @@ class MainActivity :
             podcast.feedUrl
         )
 
-        startActivity(intent)
+        startActivity(
+            intent
+        )
     }
 
     private fun searchPodcasts(
@@ -195,7 +326,9 @@ class MainActivity :
             try {
 
                 val response =
-                    api.searchPodcasts(query)
+                    api.searchPodcasts(
+                        query
+                    )
 
                 adapter.updateList(
                     response.results
@@ -205,7 +338,9 @@ class MainActivity :
                     response.results
                 )
 
-            } catch (e: Exception) {
+            } catch (
+                e: Exception
+            ) {
 
                 e.printStackTrace()
             }
