@@ -17,6 +17,7 @@ lifecycle = "2.11.0"
 recyclerview = "1.4.0"
 media3 = "1.11.0"
 room = "2.8.5"
+work = "2.11.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -55,6 +56,9 @@ media3-exoplayer-hls = { module = "androidx.media3:media3-exoplayer-hls", versio
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+
+# WorkManager
+work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
