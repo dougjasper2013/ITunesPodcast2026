@@ -6,16 +6,22 @@ import java.net.URL
 import org.xmlpull.v1.XmlPullParser
 
 object PodcastRssParser {
-    fun parseFeed(feedUrl: String): List<Episode> {
 
-        val episodes = mutableListOf<Episode>()
+    fun parseFeed(
+        feedUrl: String
+    ): List<Episode> {
+
+        val episodes =
+            mutableListOf<Episode>()
 
         val connection =
-            URL(feedUrl).openConnection() as HttpURLConnection
+            URL(feedUrl).openConnection()
+                    as HttpURLConnection
 
         connection.requestMethod = "GET"
         connection.connectTimeout = 15000
         connection.readTimeout = 15000
+
         connection.setRequestProperty(
             "User-Agent",
             "Mozilla/5.0"
@@ -27,34 +33,45 @@ object PodcastRssParser {
                 return emptyList()
             }
 
-            val parser = Xml.newPullParser()
+            val parser =
+                Xml.newPullParser()
 
             connection.inputStream.use { inputStream ->
 
-                parser.setInput(inputStream, null)
+                parser.setInput(
+                    inputStream,
+                    null
+                )
 
-                var eventType = parser.eventType
+                var eventType =
+                    parser.eventType
 
                 var insideItem = false
 
+                var guid = ""
                 var title = ""
                 var description = ""
                 var pubDate = ""
                 var mediaUrl = ""
                 var mediaType = ""
 
-                while (eventType != XmlPullParser.END_DOCUMENT) {
+                while (
+                    eventType !=
+                    XmlPullParser.END_DOCUMENT
+                ) {
 
                     when (eventType) {
 
                         XmlPullParser.START_TAG -> {
 
-                            val tagName = parser.name.lowercase()
+                            val tagName =
+                                parser.name.lowercase()
 
                             if (tagName == "item") {
 
                                 insideItem = true
 
+                                guid = ""
                                 title = ""
                                 description = ""
                                 pubDate = ""
@@ -65,20 +82,34 @@ object PodcastRssParser {
 
                                 when (tagName) {
 
+                                    "guid" -> {
+
+                                        guid =
+                                            parser.nextText()
+                                    }
+
                                     "title" -> {
-                                        title = parser.nextText()
+
+                                        title =
+                                            parser.nextText()
                                     }
 
                                     "description" -> {
-                                        description = parser.nextText()
+
+                                        description =
+                                            parser.nextText()
                                     }
 
                                     "content:encoded" -> {
-                                        description = parser.nextText()
+
+                                        description =
+                                            parser.nextText()
                                     }
 
                                     "pubdate" -> {
-                                        pubDate = parser.nextText()
+
+                                        pubDate =
+                                            parser.nextText()
                                     }
 
                                     "enclosure" -> {
@@ -95,12 +126,20 @@ object PodcastRssParser {
                                                 "type"
                                             )
 
-                                        if (!url.isNullOrBlank()) {
-                                            mediaUrl = url
+                                        if (
+                                            !url.isNullOrBlank()
+                                        ) {
+
+                                            mediaUrl =
+                                                url
                                         }
 
-                                        if (!type.isNullOrBlank()) {
-                                            mediaType = type
+                                        if (
+                                            !type.isNullOrBlank()
+                                        ) {
+
+                                            mediaType =
+                                                type
                                         }
                                     }
 
@@ -118,12 +157,20 @@ object PodcastRssParser {
                                                 "type"
                                             )
 
-                                        if (!url.isNullOrBlank()) {
-                                            mediaUrl = url
+                                        if (
+                                            !url.isNullOrBlank()
+                                        ) {
+
+                                            mediaUrl =
+                                                url
                                         }
 
-                                        if (!type.isNullOrBlank()) {
-                                            mediaType = type
+                                        if (
+                                            !type.isNullOrBlank()
+                                        ) {
+
+                                            mediaType =
+                                                type
                                         }
                                     }
                                 }
@@ -132,25 +179,50 @@ object PodcastRssParser {
 
                         XmlPullParser.END_TAG -> {
 
-                            val tagName = parser.name.lowercase()
+                            val tagName =
+                                parser.name.lowercase()
 
-                            if (tagName == "item" && insideItem) {
+                            if (
+                                tagName == "item" &&
+                                insideItem
+                            ) {
 
-                                if (mediaUrl.isNotBlank()) {
+                                if (
+                                    mediaUrl.isNotBlank()
+                                ) {
+
+                                    val episodeGuid =
+                                        guid.ifBlank {
+                                            mediaUrl
+                                        }
 
                                     episodes.add(
                                         Episode(
-                                            title = title.ifBlank {
-                                                "Untitled Episode"
-                                            },
-                                            description = description,
-                                            pubDate = pubDate,
-                                            mediaUrl = mediaUrl,
-                                            mediaType = mediaType,
-                                            isVideo = isVideoMedia(
+                                            guid =
+                                                episodeGuid,
+
+                                            title =
+                                                title.ifBlank {
+                                                    "Untitled Episode"
+                                                },
+
+                                            description =
+                                                description,
+
+                                            pubDate =
+                                                pubDate,
+
+                                            mediaUrl =
+                                                mediaUrl,
+
+                                            mediaType =
                                                 mediaType,
-                                                mediaUrl
-                                            )
+
+                                            isVideo =
+                                                isVideoMedia(
+                                                    mediaType,
+                                                    mediaUrl
+                                                )
                                         )
                                     )
                                 }
@@ -160,11 +232,13 @@ object PodcastRssParser {
                         }
                     }
 
-                    eventType = parser.next()
+                    eventType =
+                        parser.next()
                 }
             }
 
         } finally {
+
             connection.disconnect()
         }
 
@@ -177,29 +251,45 @@ object PodcastRssParser {
 
         return try {
 
-            val episodes = parseFeed(feedUrl)
+            val episodes =
+                parseFeed(feedUrl)
 
             if (episodes.isEmpty()) {
+
                 "Unknown"
+
             } else {
 
-                val hasVideo = episodes.any {
-                    it.isVideo
-                }
+                val hasVideo =
+                    episodes.any {
+                        it.isVideo
+                    }
 
-                val hasAudio = episodes.any {
-                    !it.isVideo
-                }
+                val hasAudio =
+                    episodes.any {
+                        !it.isVideo
+                    }
 
                 when {
-                    hasVideo && hasAudio -> "Audio / Video"
-                    hasVideo -> "Video"
-                    hasAudio -> "Audio"
-                    else -> "Unknown"
+
+                    hasVideo && hasAudio ->
+                        "Audio / Video"
+
+                    hasVideo ->
+                        "Video"
+
+                    hasAudio ->
+                        "Audio"
+
+                    else ->
+                        "Unknown"
                 }
             }
 
-        } catch (e: Exception) {
+        } catch (
+            e: Exception
+        ) {
+
             "Unknown"
         }
     }
@@ -209,19 +299,25 @@ object PodcastRssParser {
         mediaUrl: String
     ): Boolean {
 
-        val type = mediaType.lowercase()
+        val type =
+            mediaType.lowercase()
 
-        if (type.startsWith("video/")) {
+        if (
+            type.startsWith("video/")
+        ) {
             return true
         }
 
-        if (type.startsWith("audio/")) {
+        if (
+            type.startsWith("audio/")
+        ) {
             return false
         }
 
-        val url = mediaUrl
-            .lowercase()
-            .substringBefore("?")
+        val url =
+            mediaUrl
+                .lowercase()
+                .substringBefore("?")
 
         return url.endsWith(".mp4") ||
                 url.endsWith(".m4v") ||
